@@ -11,17 +11,13 @@ import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 
-/**
- * Console password strength checker.
- * Requires Java 17+ (records and switch expressions).
- * Nothing you type is stored, logged or sent anywhere.
- */
+
 public class PasswordSecurityChecker {
 
     public static void main(String[] args) {
         PasswordAnalyzer analyzer = new PasswordAnalyzer(CommonPasswords.load(Path.of("common-passwords.txt")));
 
-        // System.console() is null inside most IDEs; then we fall back to Scanner (input is visible).
+        
         Console console = System.console();
         Scanner scanner = (console == null) ? new Scanner(System.in) : null;
 
@@ -34,7 +30,7 @@ public class PasswordSecurityChecker {
 
         while (true) {
             String input = readPassword(console, scanner);
-            if (input == null || input.equalsIgnoreCase("exit")) { // null = Ctrl+D / end of input
+            if (input == null || input.equalsIgnoreCase("exit")) {
                 System.out.println("Session closed.");
                 break;
             }
@@ -42,7 +38,7 @@ public class PasswordSecurityChecker {
         }
     }
 
-    /** Reads one password. Uses hidden input when a real console exists. */
+  
     private static String readPassword(Console console, Scanner scanner) {
         if (console != null) {
             char[] chars = console.readPassword("Enter password: ");
@@ -50,7 +46,7 @@ public class PasswordSecurityChecker {
             try {
                 return new String(chars);
             } finally {
-                Arrays.fill(chars, '\0'); // wipe the array we control
+                Arrays.fill(chars, '\0'); 
             }
         }
         System.out.print("Enter password: ");
@@ -65,11 +61,11 @@ public class PasswordSecurityChecker {
         }
         System.out.printf("Estimated entropy: ~%.0f bits (rough guide, not a guarantee)%n", report.entropyBits());
         System.out.println("Overall strength: " + report.strength());
-        System.out.println("--------------------------------------------------\n");
+        System.out.println("\n");
     }
 }
 
-/** Core logic, kept separate from the console so it can be tested on its own. */
+
 class PasswordAnalyzer {
     private static final int MIN_LENGTH = 12;
     private static final String[] KEYBOARD_ROWS = {"qwertyuiop", "asdfghjkl", "zxcvbnm", "1234567890"};
@@ -91,7 +87,7 @@ class PasswordAnalyzer {
             if (Character.isLowerCase(c)) lower = true;
             else if (Character.isUpperCase(c)) upper = true;
             else if (Character.isDigit(c)) digit = true;
-            else if (!Character.isLetter(c)) symbol = true; // anything that is not a letter or digit
+            else if (!Character.isLetter(c)) symbol = true; 
         }
 
         boolean lengthOk = password.length() >= MIN_LENGTH;
@@ -111,8 +107,7 @@ class PasswordAnalyzer {
                 "Avoid repeats, alphabet or number runs and keyboard rows."));
 
         double bits = estimateEntropy(password, lower, upper, digit, symbol);
-        if (hasPattern) bits *= 0.6; // patterns make guessing much easier
-
+        if (hasPattern) bits *= 0.6; 
         Strength strength;
         if (isCommon) strength = Strength.CRITICAL_WEAKNESS;
         else if (bits < 36) strength = Strength.WEAK;
@@ -125,24 +120,23 @@ class PasswordAnalyzer {
     /** length * log2(size of the character pool). An upper bound: real attackers use dictionaries. */
     private static double estimateEntropy(String p, boolean lower, boolean upper, boolean digit, boolean symbol) {
         int pool = (lower ? 26 : 0) + (upper ? 26 : 0) + (digit ? 10 : 0) + (symbol ? 33 : 0);
-        if (pool == 0) pool = 26; // non-ASCII letters only: assume a basic pool
+        if (pool == 0) pool = 26;
         return p.length() * (Math.log(pool) / Math.log(2));
     }
 
-    // ---------- common password detection ----------
-
+ 
     private boolean isCommon(String password) {
         String raw = password.toLowerCase(Locale.ROOT);
-        // "1" is often swapped for either i or l, so try both readings
+        
         for (String candidate : new String[]{raw, normalise(raw, 'i'), normalise(raw, 'l')}) {
             if (common.contains(candidate)) return true;
-            String stripped = candidate.replaceAll("[^a-z]+$", ""); // drop trailing digits/symbols: password1! -> password
+            String stripped = candidate.replaceAll("[^a-z]+$", "");
             if (!stripped.isEmpty() && common.contains(stripped)) return true;
         }
         return false;
     }
 
-    /** Undoes common "leetspeak": p@ssw0rd -> password. */
+   
     private static String normalise(String s, char oneAs) {
         StringBuilder sb = new StringBuilder(s.length());
         for (char c : s.toCharArray()) {
@@ -160,9 +154,7 @@ class PasswordAnalyzer {
         return sb.toString();
     }
 
-    // ---------- pattern detection ----------
-
-    /** True if one character repeats at least {@code n} times in a row (aaa, 111). */
+   
     private static boolean hasRepeat(String p, int n) {
         String s = p.toLowerCase(Locale.ROOT);
         int run = 1;
@@ -173,7 +165,7 @@ class PasswordAnalyzer {
         return false;
     }
 
-    /** True for runs like abcd, 1234 or dcba (each step is +1 or -1). */
+ 
     private static boolean hasSequence(String p, int n) {
         String s = p.toLowerCase(Locale.ROOT);
         int up = 1, down = 1;
@@ -186,7 +178,7 @@ class PasswordAnalyzer {
         return false;
     }
 
-    /** True if the password contains n keys in a row from a keyboard row, forwards or backwards. */
+    
     private static boolean hasKeyboardRun(String p, int n) {
         String s = p.toLowerCase(Locale.ROOT);
         for (String row : KEYBOARD_ROWS) {
@@ -199,7 +191,7 @@ class PasswordAnalyzer {
     }
 }
 
-/** Loads the common-password list: a file if present, otherwise a small built-in list. */
+
 final class CommonPasswords {
     private static final String[] BUILT_IN = {
         "password", "123456", "12345678", "123456789", "qwerty", "qwertyuiop", "abc123", "letmein",
